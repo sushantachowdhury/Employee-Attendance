@@ -16,6 +16,13 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { Employee, UserStatus } from '../types/attendance';
+import {
+  fetchEmployeesRobust,
+  createEmployeeRobust,
+  getLocalCachedEmployees,
+  saveLocalEmployees,
+  safeFetchJson,
+} from '../utils/api';
 
 interface EmployeeManagementModalProps {
   isOpen: boolean;
@@ -28,8 +35,8 @@ export const EmployeeManagementModal: React.FC<EmployeeManagementModalProps> = (
   onClose,
   onEmployeeUpdated,
 }) => {
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [employees, setEmployees] = useState<Employee[]>(() => getLocalCachedEmployees());
+  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<'ALL' | 'active' | 'inactive'>('ALL');
 
@@ -46,11 +53,11 @@ export const EmployeeManagementModal: React.FC<EmployeeManagementModalProps> = (
   const fetchEmployees = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/employees');
-      const data = await res.json();
+      const data = await fetchEmployeesRobust();
       setEmployees(data);
     } catch (e) {
-      console.error('Failed to load employees', e);
+      console.warn('Failed to load employees from API, using cached data', e);
+      setEmployees(getLocalCachedEmployees());
     } finally {
       setLoading(false);
     }
@@ -64,22 +71,20 @@ export const EmployeeManagementModal: React.FC<EmployeeManagementModalProps> = (
 
   const handleToggleStatus = async (empId: string, currentStatus: UserStatus) => {
     const nextStatus: UserStatus = currentStatus === 'active' ? 'inactive' : 'active';
-    try {
-      const res = await fetch(`/api/employees/${empId}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: nextStatus }),
-      });
+    // Update local state immediately for snappy responsive UI
+    setEmployees((prev) => {
+      const updated = prev.map((e) => (e.empId === empId ? { ...e, status: nextStatus } : e));
+      saveLocalEmployees(updated);
+      return updated;
+    });
+    if (onEmployeeUpdated) onEmployeeUpdated();
 
-      if (res.ok) {
-        setEmployees((prev) =>
-          prev.map((e) => (e.empId === empId ? { ...e, status: nextStatus } : e))
-        );
-        if (onEmployeeUpdated) onEmployeeUpdated();
-      }
-    } catch (e) {
-      console.error('Failed to update status', e);
-    }
+    // Sync with backend API
+    await safeFetchJson(`/api/employees/${empId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: nextStatus }),
+    });
   };
 
   const handleAddEmployee = async (e: React.FormEvent) => {
@@ -88,25 +93,25 @@ export const EmployeeManagementModal: React.FC<EmployeeManagementModalProps> = (
     setAddLoading(true);
 
     try {
-      const res = await fetch('/api/employees', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          empId: newEmpId.toUpperCase().trim(),
-          name: newName.trim(),
-          department: newDept,
-          phone: newPhone.trim() || undefined,
-          role: 'employee',
-          status: newStatus,
-        }),
+      const result = await createEmployeeRobust({
+        empId: newEmpId.toUpperCase().trim(),
+        name: newName.trim(),
+        department: newDept,
+        phone: newPhone.trim() || undefined,
+        role: 'employee',
+        status: newStatus,
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to add employee');
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to add employee');
       }
 
-      setEmployees((prev) => [...prev, data.employee]);
+      setEmployees((prev) => {
+        const filtered = prev.filter(
+          (p) => p.empId.toUpperCase() !== result.employee.empId.toUpperCase()
+        );
+        return [...filtered, result.employee];
+      });
       setNewEmpId('');
       setNewName('');
       setNewPhone('');

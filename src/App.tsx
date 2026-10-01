@@ -32,6 +32,7 @@ import { NotificationToastContainer } from './components/NotificationToast';
 import { notifyCheckInSuccess } from './utils/notifications';
 import { PWAInstallButton } from './components/PWAInstallButton';
 import { AuthUser, OfficeConfig, AttendanceRecord } from './types/attendance';
+import { safeFetchJson } from './utils/api';
 import { QrCode, Users, Package, Bell, LayoutDashboard, Database, WifiOff } from 'lucide-react';
 import { AdminDashboardView } from './components/AdminDashboardView';
 import { SQLiteOfflineStorageModal } from './components/SQLiteOfflineStorageModal';
@@ -103,10 +104,9 @@ export default function App() {
 
   // Fetch initial office data
   useEffect(() => {
-    fetch('/api/office')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data && data.name) setOffice(data);
+    safeFetchJson<OfficeConfig>('/api/office')
+      .then((res) => {
+        if (res.ok && res.data && res.data.name) setOffice(res.data);
       })
       .catch((e) => console.warn('Could not fetch office config', e));
   }, []);

@@ -11,10 +11,15 @@ export const PhoneQRCodeModal: React.FC<PhoneQRCodeModalProps> = ({ isOpen, onCl
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
   const [copied, setCopied] = useState(false);
   const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
+  const sharedUrl = currentUrl.includes('-dev-') ? currentUrl.replace('-dev-', '-pre-') : currentUrl;
+  
+  // Default to the currently active dev URL so the link works immediately
+  const [selectedUrlType, setSelectedUrlType] = useState<'current' | 'shared'>('current');
+  const targetUrl = selectedUrlType === 'current' ? currentUrl : sharedUrl;
 
   useEffect(() => {
-    if (isOpen && currentUrl) {
-      QRCode.toDataURL(currentUrl, {
+    if (isOpen && targetUrl) {
+      QRCode.toDataURL(targetUrl, {
         width: 320,
         margin: 2,
         color: {
@@ -25,12 +30,12 @@ export const PhoneQRCodeModal: React.FC<PhoneQRCodeModalProps> = ({ isOpen, onCl
         .then((url) => setQrDataUrl(url))
         .catch((err) => console.error('Failed to generate QR code', err));
     }
-  }, [isOpen, currentUrl]);
+  }, [isOpen, targetUrl]);
 
   if (!isOpen) return null;
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(currentUrl);
+    navigator.clipboard.writeText(targetUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -72,22 +77,56 @@ export const PhoneQRCodeModal: React.FC<PhoneQRCodeModalProps> = ({ isOpen, onCl
         </div>
 
         {/* Instructions */}
-        <div className="text-left bg-neutral-850 border border-neutral-800 rounded-xl p-3 mb-4 text-xs text-neutral-300 space-y-1.5">
+        <div className="text-left bg-neutral-850 border border-neutral-800 rounded-xl p-3 mb-3 text-xs text-neutral-300 space-y-1.5">
           <p className="font-semibold text-white flex items-center gap-1.5">
             <Compass className="w-4 h-4 text-blue-400" />
-            How to test the Real-Time Dot:
+            How to test on your phone:
           </p>
           <ol className="list-decimal list-inside space-y-1 text-neutral-400 text-[11px]">
-            <li>Scan QR with your iPhone / Android camera & tap the link.</li>
+            <li>Scan QR with your camera or open the link below.</li>
             <li>Allow location & camera permissions when prompted.</li>
             <li>
-              Tap <strong className="text-blue-300">"Set Current GPS as Office"</strong> so your exact spot becomes the office center.
+              Log in with <strong className="text-white">EMP001</strong> (or phone <strong className="text-white">+91 98301 23456</strong>).
             </li>
             <li>
-              Walk 10m–60m: watch the blue dot live-track your movement and unlock/lock at the 50m line!
+              Check in with selfie verification and GPS geofence radar.
             </li>
           </ol>
         </div>
+
+        {/* URL Type Selector */}
+        <div className="flex bg-neutral-950 p-1 rounded-xl border border-neutral-800 mb-3 text-xs">
+          <button
+            onClick={() => setSelectedUrlType('current')}
+            className={`flex-1 py-1.5 rounded-lg font-medium transition ${
+              selectedUrlType === 'current'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-neutral-400 hover:text-neutral-200'
+            }`}
+          >
+            Direct Dev Link (Active)
+          </button>
+          <button
+            onClick={() => setSelectedUrlType('shared')}
+            className={`flex-1 py-1.5 rounded-lg font-medium transition ${
+              selectedUrlType === 'shared'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-neutral-400 hover:text-neutral-200'
+            }`}
+          >
+            Public Shared Link
+          </button>
+        </div>
+
+        {/* Mobile link display */}
+        <div className="text-[11px] text-blue-300 mb-2 truncate bg-neutral-950 px-3 py-2 rounded-xl border border-neutral-800 font-mono select-all">
+          {targetUrl}
+        </div>
+        {selectedUrlType === 'shared' && (
+          <p className="text-[10px] text-amber-400 mb-3">
+            Note: Public link requires clicking "Share" in the top-right of AI Studio to activate.
+          </p>
+        )}
 
         {/* Copy Link Button */}
         <div className="flex gap-2">

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DailyReportRow } from '../types/attendance';
+import { safeFetchJson } from '../utils/api';
 import {
   Download,
   Search,
@@ -33,16 +34,24 @@ export const DailyReportView: React.FC = () => {
   const fetchDailyReport = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/reports/daily?date=${currentDate}`);
-      const data = await res.json();
-      setRows(data.rows || []);
-      setSummaryStats({
-        totalEmployees: data.totalEmployees || (data.rows ? data.rows.length : 0),
-        activeCount: data.activeCount || (data.rows ? data.rows.filter((r: any) => r.employeeStatus !== 'inactive').length : 0),
-        inactiveCount: data.inactiveCount || (data.rows ? data.rows.filter((r: any) => r.employeeStatus === 'inactive').length : 0),
-      });
+      const result = await safeFetchJson<{
+        rows: DailyReportRow[];
+        totalEmployees: number;
+        activeCount: number;
+        inactiveCount: number;
+      }>(`/api/reports/daily?date=${currentDate}`);
+
+      if (result.ok && result.data) {
+        const data = result.data;
+        setRows(data.rows || []);
+        setSummaryStats({
+          totalEmployees: data.totalEmployees || (data.rows ? data.rows.length : 0),
+          activeCount: data.activeCount || (data.rows ? data.rows.filter((r: any) => r.employeeStatus !== 'inactive').length : 0),
+          inactiveCount: data.inactiveCount || (data.rows ? data.rows.filter((r: any) => r.employeeStatus === 'inactive').length : 0),
+        });
+      }
     } catch (e) {
-      console.error('Failed to load daily report', e);
+      console.warn('Failed to load daily report', e);
     } finally {
       setLoading(false);
     }

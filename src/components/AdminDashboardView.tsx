@@ -25,6 +25,7 @@ import {
   Camera,
 } from 'lucide-react';
 import { AttendanceRecord, DailyReportRow } from '../types/attendance';
+import { safeFetchJson } from '../utils/api';
 
 interface AdminDashboardViewProps {
   onOpenEmployeeModal: () => void;
@@ -58,12 +59,21 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
   const loadData = async () => {
     setLoading(true);
     try {
-      const [reportRes, officeRes] = await Promise.all([
-        fetch(`/api/reports/daily?date=${todayDate}`),
-        fetch('/api/office'),
+      const [reportResult, officeResult] = await Promise.all([
+        safeFetchJson<{
+          rows: DailyReportRow[];
+          totalEmployees: number;
+          activeCount: number;
+          inactiveCount: number;
+          presentCount: number;
+          lateCount: number;
+          absentCount: number;
+        }>(`/api/reports/daily?date=${todayDate}`),
+        safeFetchJson<{ name: string; radiusMeters: number }>('/api/office'),
       ]);
-      const reportData = await reportRes.json();
-      const officeData = await officeRes.json();
+
+      const reportData = reportResult.data || ({} as any);
+      const officeData = officeResult.data || ({} as any);
 
       setDailyRows(reportData.rows || []);
       setStats({
@@ -77,7 +87,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
         radiusMeters: officeData.radiusMeters || 50,
       });
     } catch (e) {
-      console.error('Failed to load dashboard data', e);
+      console.warn('Failed to load dashboard data', e);
     } finally {
       setLoading(false);
     }

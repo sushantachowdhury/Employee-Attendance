@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MonthlyReportRow } from '../types/attendance';
+import { safeFetchJson } from '../utils/api';
 import {
   CalendarDays,
   Download,
@@ -21,11 +22,14 @@ export const MonthlyReportView: React.FC = () => {
   const fetchMonthlyReport = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/reports/monthly?month=${encodeURIComponent(selectedMonth)}`);
-      const data = await res.json();
-      setRows(data.rows || []);
+      const result = await safeFetchJson<{ rows: MonthlyReportRow[] }>(
+        `/api/reports/monthly?month=${encodeURIComponent(selectedMonth)}`
+      );
+      if (result.ok && result.data) {
+        setRows(result.data.rows || []);
+      }
     } catch (e) {
-      console.error('Failed to load monthly report', e);
+      console.warn('Failed to load monthly report', e);
     } finally {
       setLoading(false);
     }
