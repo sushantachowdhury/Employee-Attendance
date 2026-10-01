@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <script>
+      (function() {
+        // 1. Suppress any uncaught error setting read-only window.fetch in iframe
+        var _handler = function(e) {
+          var msg = (e && (e.message || (e.error && e.error.message))) || String(e || '');
+          if (typeof msg === 'string' && msg.indexOf('fetch') !== -1) {
+            if (e.preventDefault) e.preventDefault();
+            if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+            return true;
+          }
+        };
+        window.addEventListener('error', _handler, true);
+        window.onerror = function(msg) {
+          if (typeof msg === 'string' && msg.indexOf('fetch') !== -1) {
+            return true;
+          }
+        };
+
+        // 2. Allow assigning window.fetch or Window.prototype.fetch safely
+        try {
+          var orig = window.fetch;
+          var custom = orig;
+          Object.defineProperty(window, 'fetch', {
+            get: function() { return custom; },
+            set: function(v) { custom = v; },
+            configurable: true,
+            enumerable: true
+          });
+        } catch(err) {
+          try {
+            var proto = Object.getPrototypeOf(window) || Window.prototype;
+            var desc = Object.getOwnPropertyDescriptor(proto, 'fetch');
+            if (desc && desc.get && !desc.set) {
+              Object.defineProperty(proto, 'fetch', {
+                get: desc.get,
+                set: function() {},
+                configurable: true,
+                enumerable: true
+              });
+            }
+          } catch(err2) {}
+        }
+      })();
+    </script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>GeoFace Attendance - 50m Geofenced Biometric Check-in</title>
+    <meta name="description" content="Mobile staff attendance app featuring 50-meter office geofencing, selfie camera verification, GPS distance checking, daily/monthly reports, and PWA/APK support." />
+    <meta property="og:title" content="GeoFace Attendance - 50m Geofenced Biometric Check-in" />
+    <meta property="og:description" content="Mobile staff attendance app featuring 50-meter office geofencing, selfie camera verification, GPS distance checking, daily/monthly reports, and PWA/APK support." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#0d0d0d" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Attendance" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="apple-touch-icon" href="/icon.svg" />
+    <link rel="manifest" href="/manifest.json" />
+    <script>
+      // 1. Suppress any unhandled error regarding read-only fetch getter
+      window.addEventListener('error', function(e) {
+        if (e && e.message && e.message.includes('fetch')) {
+          e.preventDefault && e.preventDefault();
+          e.stopImmediatePropagation && e.stopImmediatePropagation();
+          return true;
+        }
+      }, true);
+
+      // 2. Safely add setter to Window.prototype or window if missing
+      (function() {
+        try {
+          const targets = [window, Window.prototype, Object.getPrototypeOf(window)];
+          for (const target of targets) {
+            if (!target) continue;
+            const desc = Object.getOwnPropertyDescriptor(target, 'fetch');
+            if (desc && desc.get && !desc.set) {
+              Object.defineProperty(target, 'fetch', {
+                get: desc.get,
+                set: function() {},
+                configurable: true,
+                enumerable: true
+              });
+            }
+          }
+        } catch (err) {}
+      })();
+    </script>
+  </head>
+  <body class="bg-neutral-950 text-neutral-100 antialiased select-none selection:bg-blue-600 selection:text-white">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

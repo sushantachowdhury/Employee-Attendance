@@ -1,0 +1,20 @@
+{
+  "id": "/",
+  "name": "Staff Attendance - GeoFace",
+  "short_name": "Attendance",
+  "description": "50m Geofenced Face Attendance App for Staff",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#121212",
+  "theme_color": "#185FA5",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

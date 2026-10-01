@@ -1,0 +1,12 @@
+{
+  "name": "GeoFace Attendance - 50m Geofenced Biometric Check-in",
+  "description": "Mobile staff attendance app featuring 50-meter office geofencing, selfie camera verification, GPS distance checking, daily/monthly reports, and PWA/APK support.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
+
